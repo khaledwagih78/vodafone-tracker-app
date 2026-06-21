@@ -11,7 +11,7 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// يرجّع "المتبقي" لقيمة الحد الشهري لأي خط لسه فاضل على شهر قديم
+// يرجّع "متبقي السحب" و"متبقي الإيداع" لقيمة الحد الشهري لأي خط لسه فاضل على شهر قديم
 // بدل Cron مدفوع - بيتنفذ عند كل تحميل للداشبورد (lazy reset)
 export async function ensureMonthlyReset(userId) {
   const month = currentMonth();
@@ -27,7 +27,11 @@ export async function ensureMonthlyReset(userId) {
     stale.map((line) =>
       supabase
         .from("lines")
-        .update({ remaining: line.monthly_limit, last_reset_month: month })
+        .update({
+          remaining_withdraw: line.monthly_limit,
+          remaining_deposit: line.monthly_limit,
+          last_reset_month: month,
+        })
         .eq("id", line.id)
     )
   );
@@ -66,7 +70,8 @@ export async function addLine(userId, number, displayName = "") {
       display_name: displayName || null,
       balance: 0,
       monthly_limit: DEFAULT_MONTHLY_LIMIT,
-      remaining: DEFAULT_MONTHLY_LIMIT,
+      remaining_withdraw: DEFAULT_MONTHLY_LIMIT,
+      remaining_deposit: DEFAULT_MONTHLY_LIMIT,
       last_reset_month: currentMonth(),
     })
     .select()
@@ -106,22 +111,23 @@ export async function setBalance(userId, lineId, amount) {
   return data;
 }
 
-// لو السحب هيخلي الخط يتعدى الحد الشهري -> رفض كامل، بدون أي كتابة (نفس سلوك البوت بالضبط)
+// حد السحب الشهري مستقل تمامًا عن حد الإيداع - لو السحب هيخلي الخط يتعدى
+// حد السحب بتاعه -> رفض كامل، بدون أي كتابة
 export async function withdraw(userId, lineId, amount, note = "-") {
   const line = await getLine(lineId);
-  const newRemaining = line.remaining - amount;
+  const newRemainingWithdraw = line.remaining_withdraw - amount;
 
-  if (newRemaining < 0) {
+  if (newRemainingWithdraw < 0) {
     return {
       rejected: true,
-      message: `🚫 تم رفض السحب - هيخلي الخط يتعدى الحد الشهري بـ ${Math.abs(newRemaining).toLocaleString()} جنيه`,
+      message: `🚫 تم رفض السحب - هيخلي الخط يتعدى حد السحب الشهري بـ ${Math.abs(newRemainingWithdraw).toLocaleString()} جنيه`,
     };
   }
 
   const newBalance = line.balance - amount;
   const { data, error } = await supabase
     .from("lines")
-    .update({ balance: newBalance, remaining: newRemaining })
+    .update({ balance: newBalance, remaining_withdraw: newRemainingWithdraw })
     .eq("id", lineId)
     .select()
     .single();
@@ -132,18 +138,27 @@ export async function withdraw(userId, lineId, amount, note = "-") {
   return {
     rejected: false,
     line: data,
-    warning: limitWarningMessage(newRemaining, line.monthly_limit),
+    warning: limitWarningMessage(newRemainingWithdraw, line.monthly_limit, "السحب"),
   };
 }
 
+// حد الإيداع الشهري مستقل تمامًا عن حد السحب - لو الإيداع هيخلي الخط يتعدى
+// حد الإيداع بتاعه -> رفض كامل، بدون أي كتابة
 export async function deposit(userId, lineId, amount) {
   const line = await getLine(lineId);
-  const newBalance = line.balance + amount;
-  const newRemaining = line.remaining + amount;
+  const newRemainingDeposit = line.remaining_deposit - amount;
 
+  if (newRemainingDeposit < 0) {
+    return {
+      rejected: true,
+      message: `🚫 تم رفض الإيداع - هيخلي الخط يتعدى حد الإيداع الشهري بـ ${Math.abs(newRemainingDeposit).toLocaleString()} جنيه`,
+    };
+  }
+
+  const newBalance = line.balance + amount;
   const { data, error } = await supabase
     .from("lines")
-    .update({ balance: newBalance, remaining: newRemaining })
+    .update({ balance: newBalance, remaining_deposit: newRemainingDeposit })
     .eq("id", lineId)
     .select()
     .single();
@@ -152,19 +167,20 @@ export async function deposit(userId, lineId, amount) {
   await logTransaction(userId, lineId, "إيداع", amount, "-");
 
   return {
+    rejected: false,
     line: data,
-    warning: limitWarningMessage(newRemaining, line.monthly_limit),
+    warning: limitWarningMessage(newRemainingDeposit, line.monthly_limit, "الإيداع"),
   };
 }
 
 // نفس منطق limitWarningMessage في البوت: تجاوز -> أحمر، أقل من 50% من الحد -> تنبيه
-export function limitWarningMessage(remaining, monthlyLimit) {
+export function limitWarningMessage(remaining, monthlyLimit, label) {
   if (remaining <= 0) {
-    return `🔴 تحذير! تجاوزت الحد الشهري بـ ${Math.abs(remaining).toLocaleString()} جنيه`;
+    return `🔴 تحذير! تجاوزت حد ${label} الشهري بـ ${Math.abs(remaining).toLocaleString()} جنيه`;
   }
   const threshold = monthlyLimit * 0.5;
   if (remaining <= threshold) {
-    return `⚠️ تنبيه! اقتربت من الحد الشهري! متبقي فقط ${remaining.toLocaleString()} جنيه`;
+    return `⚠️ تنبيه! اقتربت من حد ${label} الشهري! متبقي فقط ${remaining.toLocaleString()} جنيه`;
   }
   return null;
 }

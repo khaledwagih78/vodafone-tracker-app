@@ -8,7 +8,8 @@ create table public.lines (
   display_name text,
   balance numeric not null default 0,
   monthly_limit numeric not null default 200000,
-  remaining numeric not null default 200000,
+  remaining_withdraw numeric not null default 200000,
+  remaining_deposit numeric not null default 200000,
   last_reset_month text not null default to_char(now(), 'YYYY-MM'),
   created_at timestamptz not null default now()
 );
@@ -45,3 +46,8 @@ create policy "tx_select_own" on public.transactions
 create policy "tx_insert_own" on public.transactions
   for insert with check (auth.uid() = user_id);
 -- لا توجد سياسة update/delete على المعاملات => سجل غير قابل للتعديل
+
+-- ==================== هجرة لمشروع شغّل الـ schema القديم بالفعل ====================
+-- شغّل السطرين دول بس لو جدول lines عندك أصلاً فيه عمود "remaining" القديم (المشترك)
+-- alter table public.lines rename column remaining to remaining_withdraw;
+-- alter table public.lines add column remaining_deposit numeric not null default 200000;

@@ -15,7 +15,8 @@ export default function Summary() {
   if (lines.length === 0) return <p className="empty-state">📭 لا توجد خطوط</p>;
 
   const total = lines.reduce((sum, l) => sum + Number(l.balance), 0);
-  const totalRemaining = lines.reduce((sum, l) => sum + Number(l.remaining), 0);
+  const totalRemainingWithdraw = lines.reduce((sum, l) => sum + Number(l.remaining_withdraw), 0);
+  const totalRemainingDeposit = lines.reduce((sum, l) => sum + Number(l.remaining_deposit), 0);
 
   return (
     <div className="page">
@@ -27,7 +28,8 @@ export default function Summary() {
             <th>رقم الخط</th>
             <th>الاسم</th>
             <th>الرصيد</th>
-            <th>المتبقي</th>
+            <th>متبقي سحب</th>
+            <th>متبقي إيداع</th>
           </tr>
         </thead>
         <tbody>
@@ -42,14 +44,16 @@ export default function Summary() {
               </td>
               <td>{l.display_name || "-"}</td>
               <td>{Number(l.balance).toLocaleString()} ج</td>
-              <td>{Number(l.remaining).toLocaleString()} ج</td>
+              <td>{Number(l.remaining_withdraw).toLocaleString()} ج</td>
+              <td>{Number(l.remaining_deposit).toLocaleString()} ج</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div className="totals-card">
         <span>💰 إجمالي الرصيد: {total.toLocaleString()} جنيه</span>
-        <span>📊 إجمالي المتبقي: {totalRemaining.toLocaleString()} جنيه</span>
+        <span>📊 إجمالي متبقي السحب: {totalRemainingWithdraw.toLocaleString()} جنيه</span>
+        <span>📊 إجمالي متبقي الإيداع: {totalRemainingDeposit.toLocaleString()} جنيه</span>
       </div>
     </div>
   );

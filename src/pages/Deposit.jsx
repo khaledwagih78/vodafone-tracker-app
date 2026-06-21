@@ -18,7 +18,9 @@ export default function Deposit() {
     try {
       const res = await deposit(user.id, lineId, Number(amount));
       setResult(res);
-      setTimeout(() => navigate(`/line/${lineId}`), 1500);
+      if (!res.rejected) {
+        setTimeout(() => navigate(`/line/${lineId}`), 1500);
+      }
     } finally {
       setLoading(false);
     }
@@ -36,7 +38,8 @@ export default function Deposit() {
           {loading ? "..." : "تأكيد الإيداع"}
         </button>
       </form>
-      {result && (
+      {result && result.rejected && <div className="alert alert-error">{result.message}</div>}
+      {result && !result.rejected && (
         <div className="alert alert-success">
           ✅ تم تسجيل الإيداع
           {result.warning && <div className="alert alert-warning">{result.warning}</div>}

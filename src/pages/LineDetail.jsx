@@ -32,8 +32,12 @@ export default function LineDetail() {
           <strong>{Number(line.balance).toLocaleString()} ج</strong>
         </div>
         <div className="stat-box">
-          <span>المتبقي من الحد الشهري</span>
-          <strong>{Number(line.remaining).toLocaleString()} ج</strong>
+          <span>متبقي حد السحب</span>
+          <strong>{Number(line.remaining_withdraw).toLocaleString()} ج</strong>
+        </div>
+        <div className="stat-box">
+          <span>متبقي حد الإيداع</span>
+          <strong>{Number(line.remaining_deposit).toLocaleString()} ج</strong>
         </div>
       </div>
       <div className="actions-row">

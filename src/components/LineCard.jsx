@@ -17,7 +17,8 @@ export default function LineCard({ line }) {
       </div>
       <div className="line-card-body">
         <span>الرصيد: {Number(line.balance).toLocaleString()} ج</span>
-        <span>متبقي: {Number(line.remaining).toLocaleString()} ج</span>
+        <span>متبقي سحب: {Number(line.remaining_withdraw).toLocaleString()} ج</span>
+        <span>متبقي إيداع: {Number(line.remaining_deposit).toLocaleString()} ج</span>
       </div>
     </Link>
   );
