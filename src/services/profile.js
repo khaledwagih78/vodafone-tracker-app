@@ -5,14 +5,21 @@ export const ADMIN_USER_ID = "0e0567cb-0148-4989-8510-77ee1ac88199";
 
 // يضمن وجود صف "profile" لكل مستخدم (يبدأ تجربة 14 يوم تلقائيًا أول ما يسجّل دخول)
 export async function ensureProfile(userId, email) {
-  const { error } = await supabase
+  const { data: existing, error: selectError } = await supabase
     .from("profiles")
-    .upsert({ id: userId, email }, { onConflict: "id", ignoreDuplicates: true });
-  if (error) throw error;
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  if (existing) return;
+
+  const { error: insertError } = await supabase.from("profiles").insert({ id: userId, email });
+  // كود 23505 = الصف اتعمل فعلاً من طلب متزامن تاني - نتجاهله، مش خطأ حقيقي
+  if (insertError && insertError.code !== "23505") throw insertError;
 }
 
 export async function getProfile(userId) {
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   if (error) throw error;
   return data;
 }
