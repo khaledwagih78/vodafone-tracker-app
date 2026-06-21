@@ -51,3 +51,30 @@ create policy "tx_insert_own" on public.transactions
 -- شغّل السطرين دول بس لو جدول lines عندك أصلاً فيه عمود "remaining" القديم (المشترك)
 -- alter table public.lines rename column remaining to remaining_withdraw;
 -- alter table public.lines add column remaining_deposit numeric not null default 200000;
+
+-- ==================== النسخة التجريبية والتفعيل ====================
+-- كل مستخدم جديد يبدأ بفترة تجريبية 14 يوم. بعد انتهائها، التطبيق يطلب التفعيل
+-- (is_active = true) - وده بتعمله إنت يدويًا من Table Editor في Supabase
+-- لأي عميل دفع، بدون نظام دفع تلقائي دلوقتي.
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  trial_ends_at timestamptz not null default (now() + interval '14 days'),
+  is_active boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "profiles_select_own" on public.profiles
+  for select using (auth.uid() = id);
+create policy "profiles_insert_own" on public.profiles
+  for insert with check (auth.uid() = id);
+-- لا توجد سياسة update للمستخدم نفسه => مايقدرش يمدد تجربته أو يفعّل نفسه بنفسه
+
+-- ==================== صلاحيات لوحة تحكم المالك (خالد) ====================
+-- خالد بس (UID ده) يقدر يشوف ويفعّل كل المستخدمين من صفحة /admin جوه التطبيق
+create policy "profiles_admin_select_all" on public.profiles
+  for select using (auth.uid() = '0e0567cb-0148-4989-8510-77ee1ac88199'::uuid);
+create policy "profiles_admin_update_all" on public.profiles
+  for update using (auth.uid() = '0e0567cb-0148-4989-8510-77ee1ac88199'::uuid);

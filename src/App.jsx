@@ -5,6 +5,7 @@ import Signup from "./auth/Signup";
 import ForgotPassword from "./auth/ForgotPassword";
 import ResetPassword from "./auth/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import TrialBanner from "./components/TrialBanner";
 import Dashboard from "./pages/Dashboard";
 import AddLine from "./pages/AddLine";
 import EditLine from "./pages/EditLine";
@@ -14,6 +15,8 @@ import Deposit from "./pages/Deposit";
 import Summary from "./pages/Summary";
 import MonthlyLimits from "./pages/MonthlyLimits";
 import History from "./pages/History";
+import Admin from "./pages/Admin";
+import { ADMIN_USER_ID } from "./services/profile";
 
 function Layout({ children }) {
   const { user, signOut } = useAuth();
@@ -25,11 +28,13 @@ function Layout({ children }) {
           <Link to="/">📱 الخطوط</Link>
           <Link to="/summary">📊 ملخص</Link>
           <Link to="/limits">📈 الحدود</Link>
+          {user.id === ADMIN_USER_ID && <Link to="/admin">🛠 لوحة التحكم</Link>}
           <button onClick={signOut} className="link-button">
             🚪 خروج
           </button>
         </nav>
       )}
+      {user && <TrialBanner />}
       <main>{children}</main>
     </div>
   );
@@ -112,6 +117,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MonthlyLimits />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           }
         />
