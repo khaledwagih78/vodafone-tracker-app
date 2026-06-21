@@ -9,7 +9,8 @@ export default function TrialBanner() {
   useEffect(() => {
     if (!user) return;
     getProfile(user.id).then(setProfile).catch(() => {});
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (!profile || profile.is_active) return null;
 

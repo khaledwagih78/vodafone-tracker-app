@@ -13,7 +13,8 @@ export default function ProtectedRoute({ children }) {
     ensureProfile(user.id, user.email)
       .then(() => getProfile(user.id))
       .then(setProfile);
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (loading) return <div className="loading-screen">...جاري التحميل</div>;
   if (!user) return <Navigate to="/login" replace />;
