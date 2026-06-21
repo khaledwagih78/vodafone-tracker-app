@@ -67,6 +67,11 @@ a {
   font-weight: 600;
   color: var(--primary);
 }
+.top-nav .brand {
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--primary);
+}
 .link-button {
   background: none;
   border: none;

@@ -21,6 +21,7 @@ function Layout({ children }) {
     <div className="app-shell">
       {user && (
         <nav className="top-nav">
+          <span className="brand">🏦 اتقان كاش</span>
           <Link to="/">📱 الخطوط</Link>
           <Link to="/summary">📊 ملخص</Link>
           <Link to="/limits">📈 الحدود</Link>
