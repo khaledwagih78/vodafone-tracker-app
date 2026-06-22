@@ -2,6 +2,7 @@ import { supabase } from "../supabaseClient";
 import { logTransaction } from "./transactions";
 
 const DEFAULT_MONTHLY_LIMIT = 200000;
+export const MONTHLY_LIMIT_OPTIONS = [60000, 200000];
 // عتبة ثابتة لكل التجار (مطابقة لسلوك البوت في /متبقي) - مش نسبة من الحد
 const LOW_REMAINING_THRESHOLD = 20000;
 const LOW_BALANCE_THRESHOLD = 1000;
@@ -53,7 +54,7 @@ export async function getLine(lineId) {
   return data;
 }
 
-export async function addLine(userId, number, displayName = "") {
+export async function addLine(userId, number, displayName = "", monthlyLimit = DEFAULT_MONTHLY_LIMIT) {
   const { data: existing } = await supabase
     .from("lines")
     .select("id")
@@ -69,9 +70,9 @@ export async function addLine(userId, number, displayName = "") {
       number,
       display_name: displayName || null,
       balance: 0,
-      monthly_limit: DEFAULT_MONTHLY_LIMIT,
-      remaining_withdraw: DEFAULT_MONTHLY_LIMIT,
-      remaining_deposit: DEFAULT_MONTHLY_LIMIT,
+      monthly_limit: monthlyLimit,
+      remaining_withdraw: monthlyLimit,
+      remaining_deposit: monthlyLimit,
       last_reset_month: currentMonth(),
     })
     .select()

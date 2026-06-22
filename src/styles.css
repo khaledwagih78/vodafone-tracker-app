@@ -195,6 +195,27 @@ button.btn-danger {
   color: var(--ink-soft);
   font-size: 13px;
 }
+.radio-group {
+  display: flex;
+  gap: 12px;
+}
+.radio-option {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  flex: 1;
+}
+.form-card .radio-option input[type="radio"] {
+  width: auto;
+  padding: 0;
+  accent-color: var(--green);
+}
 
 .alert {
   padding: 10px 14px;
