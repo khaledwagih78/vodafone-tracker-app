@@ -42,6 +42,11 @@ export default function Deposit() {
       {result && !result.rejected && (
         <div className="alert alert-success">
           ✅ تم تسجيل الإيداع
+          {result.commission > 0 && (
+            <div style={{ marginTop: 6, fontWeight: 700, color: "var(--green)" }}>
+              💰 عمولة: {Number(result.commission).toLocaleString()} ج
+            </div>
+          )}
           {result.warning && <div className="alert alert-warning">{result.warning}</div>}
         </div>
       )}

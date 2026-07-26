@@ -3,7 +3,6 @@ import { logTransaction } from "./transactions";
 
 const DEFAULT_MONTHLY_LIMIT = 200000;
 export const MONTHLY_LIMIT_OPTIONS = [60000, 200000];
-// عتبة ثابتة لكل التجار (مطابقة لسلوك البوت في /متبقي) - مش نسبة من الحد
 const LOW_REMAINING_THRESHOLD = 20000;
 const LOW_BALANCE_THRESHOLD = 1000;
 
@@ -12,8 +11,6 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// يرجّع "متبقي السحب" و"متبقي الإيداع" لقيمة الحد الشهري لأي خط لسه فاضل على شهر قديم
-// بدل Cron مدفوع - بيتنفذ عند كل تحميل للداشبورد (lazy reset)
 export async function ensureMonthlyReset(userId) {
   const month = currentMonth();
   const { data: stale, error } = await supabase
@@ -54,7 +51,13 @@ export async function getLine(lineId) {
   return data;
 }
 
-export async function addLine(userId, number, displayName = "", monthlyLimit = DEFAULT_MONTHLY_LIMIT) {
+export async function addLine(
+  userId,
+  number,
+  displayName = "",
+  monthlyLimit = DEFAULT_MONTHLY_LIMIT,
+  commissionRate = 0
+) {
   const { data: existing } = await supabase
     .from("lines")
     .select("id")
@@ -74,6 +77,7 @@ export async function addLine(userId, number, displayName = "", monthlyLimit = D
       remaining_withdraw: monthlyLimit,
       remaining_deposit: monthlyLimit,
       last_reset_month: currentMonth(),
+      commission_rate: commissionRate,
     })
     .select()
     .single();
@@ -81,9 +85,10 @@ export async function addLine(userId, number, displayName = "", monthlyLimit = D
   return data;
 }
 
-export async function editLine(lineId, { code, displayName, monthlyLimit }) {
+export async function editLine(lineId, { code, displayName, monthlyLimit, commissionRate }) {
   const updates = { code, display_name: displayName };
   if (monthlyLimit !== undefined) updates.monthly_limit = monthlyLimit;
+  if (commissionRate !== undefined) updates.commission_rate = commissionRate;
 
   const { data, error } = await supabase
     .from("lines")
@@ -100,20 +105,18 @@ export async function deleteLine(lineId) {
   if (error) throw error;
 }
 
-export async function setBalance(userId, lineId, amount) {
+export async function adjustBalance(userId, lineId, newBalance, reason = "-") {
   const { data, error } = await supabase
     .from("lines")
-    .update({ balance: amount })
+    .update({ balance: newBalance })
     .eq("id", lineId)
     .select()
     .single();
   if (error) throw error;
-  await logTransaction(userId, lineId, "ضبط رصيد", amount, "-");
+  await logTransaction(userId, lineId, "ضبط رصيد", newBalance, reason || "-", 0);
   return data;
 }
 
-// حد السحب الشهري مستقل تمامًا عن حد الإيداع - لو السحب هيخلي الخط يتعدى
-// حد السحب بتاعه -> رفض كامل، بدون أي كتابة
 export async function withdraw(userId, lineId, amount, note = "-") {
   const line = await getLine(lineId);
   const newRemainingWithdraw = line.remaining_withdraw - amount;
@@ -125,6 +128,7 @@ export async function withdraw(userId, lineId, amount, note = "-") {
     };
   }
 
+  const commission = amount * ((line.commission_rate || 0) / 100);
   const newBalance = line.balance - amount;
   const { data, error } = await supabase
     .from("lines")
@@ -134,18 +138,17 @@ export async function withdraw(userId, lineId, amount, note = "-") {
     .single();
   if (error) throw error;
 
-  await logTransaction(userId, lineId, "سحب", amount, note);
+  await logTransaction(userId, lineId, "سحب", amount, note, commission);
 
   return {
     rejected: false,
     line: data,
+    commission,
     warning: limitWarningMessage(newRemainingWithdraw, line.monthly_limit, "السحب"),
   };
 }
 
-// حد الإيداع الشهري مستقل تمامًا عن حد السحب - لو الإيداع هيخلي الخط يتعدى
-// حد الإيداع بتاعه -> رفض كامل، بدون أي كتابة
-export async function deposit(userId, lineId, amount) {
+export async function deposit(userId, lineId, amount, note = "-") {
   const line = await getLine(lineId);
   const newRemainingDeposit = line.remaining_deposit - amount;
 
@@ -156,6 +159,7 @@ export async function deposit(userId, lineId, amount) {
     };
   }
 
+  const commission = amount * ((line.commission_rate || 0) / 100);
   const newBalance = line.balance + amount;
   const { data, error } = await supabase
     .from("lines")
@@ -165,16 +169,56 @@ export async function deposit(userId, lineId, amount) {
     .single();
   if (error) throw error;
 
-  await logTransaction(userId, lineId, "إيداع", amount, "-");
+  await logTransaction(userId, lineId, "إيداع", amount, note, commission);
 
   return {
     rejected: false,
     line: data,
+    commission,
     warning: limitWarningMessage(newRemainingDeposit, line.monthly_limit, "الإيداع"),
   };
 }
 
-// نفس منطق limitWarningMessage في البوت: تجاوز -> أحمر، أقل من 50% من الحد -> تنبيه
+export async function transfer(userId, fromLineId, toLineId, amount, note = "") {
+  if (fromLineId === toLineId) throw new Error("الخط المرسِل والمستقبِل هو نفسه");
+
+  const [from, to] = await Promise.all([getLine(fromLineId), getLine(toLineId)]);
+
+  if (from.remaining_withdraw - amount < 0) {
+    return {
+      rejected: true,
+      message: `🚫 الخط المرسِل تجاوز حد السحب الشهري بـ ${Math.abs(from.remaining_withdraw - amount).toLocaleString()} جنيه`,
+    };
+  }
+  if (to.remaining_deposit - amount < 0) {
+    return {
+      rejected: true,
+      message: `🚫 الخط المستقبِل تجاوز حد الإيداع الشهري بـ ${Math.abs(to.remaining_deposit - amount).toLocaleString()} جنيه`,
+    };
+  }
+
+  const { error: e1 } = await supabase
+    .from("lines")
+    .update({ balance: from.balance - amount, remaining_withdraw: from.remaining_withdraw - amount })
+    .eq("id", fromLineId);
+  if (e1) throw e1;
+
+  const { error: e2 } = await supabase
+    .from("lines")
+    .update({ balance: to.balance + amount, remaining_deposit: to.remaining_deposit - amount })
+    .eq("id", toLineId);
+  if (e2) throw e2;
+
+  const toName = to.display_name || to.number;
+  const fromName = from.display_name || from.number;
+  const suffix = note ? ` — ${note}` : "";
+
+  await logTransaction(userId, fromLineId, "سحب", amount, `📤 نقل إلى ${toName}${suffix}`, 0);
+  await logTransaction(userId, toLineId, "إيداع", amount, `📥 نقل من ${fromName}${suffix}`, 0);
+
+  return { rejected: false };
+}
+
 export function limitWarningMessage(remaining, monthlyLimit, label) {
   if (remaining <= 0) {
     return `🔴 تحذير! تجاوزت حد ${label} الشهري بـ ${Math.abs(remaining).toLocaleString()} جنيه`;
@@ -186,14 +230,12 @@ export function limitWarningMessage(remaining, monthlyLimit, label) {
   return null;
 }
 
-// لون عرض "متبقي" في صفحة الحدود الشهرية - عتبة ثابتة 20,000 لكل التجار
 export function statusColor(remaining) {
   if (remaining <= 0) return "red";
   if (remaining < LOW_REMAINING_THRESHOLD) return "warning";
   return "green";
 }
 
-// لون عرض الرصيد الحالي في الداشبورد/الملخص
 export function balanceStatusColor(balance) {
   if (balance < 0) return "red";
   if (balance < LOW_BALANCE_THRESHOLD) return "warning";
