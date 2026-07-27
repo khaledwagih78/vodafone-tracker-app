@@ -52,6 +52,12 @@ create policy "tx_insert_own" on public.transactions
 -- alter table public.lines rename column remaining to remaining_withdraw;
 -- alter table public.lines add column remaining_deposit numeric not null default 200000;
 
+-- ==================== هجرة لإضافة العمولة (شغّل مرة واحدة بس) ====================
+-- عمود commission_rate على الخط (نسبة مئوية - مثال: 0.5 = نصف بالمية)
+alter table public.lines add column if not exists commission_rate numeric not null default 0;
+-- عمود commission على كل معاملة (القيمة الفعلية للعمولة بالجنيه)
+alter table public.transactions add column if not exists commission numeric not null default 0;
+
 -- ==================== النسخة التجريبية والتفعيل ====================
 -- كل مستخدم جديد يبدأ بفترة تجريبية 14 يوم. بعد انتهائها، التطبيق يطلب التفعيل
 -- (is_active = true) - وده بتعمله إنت يدويًا من Table Editor في Supabase

@@ -15,6 +15,9 @@ import Deposit from "./pages/Deposit";
 import Summary from "./pages/Summary";
 import MonthlyLimits from "./pages/MonthlyLimits";
 import History from "./pages/History";
+import AllHistory from "./pages/AllHistory";
+import Reports from "./pages/Reports";
+import Transfer from "./pages/Transfer";
 import Admin from "./pages/Admin";
 import { ADMIN_USER_ID } from "./services/profile";
 
@@ -24,20 +27,25 @@ function Layout({ children }) {
     <div className="app-shell">
       {user && (
         <nav className="top-nav">
-          <span className="brand">🏦 اتقان كاش</span>
+          <span className="brand">🏦 آفاق كاش</span>
           <Link to="/">📱 الخطوط</Link>
           <Link to="/summary">📊 ملخص</Link>
           <Link to="/limits">📈 الحدود</Link>
+          <Link to="/history">📋 السجل</Link>
+          <Link to="/reports">💰 التقارير</Link>
+          <Link to="/transfer">🔄 نقل</Link>
           {user.id === ADMIN_USER_ID && <Link to="/admin">🛠 لوحة التحكم</Link>}
-          <button onClick={signOut} className="link-button">
-            🚪 خروج
-          </button>
+          <button onClick={signOut} className="link-button">🚪 خروج</button>
         </nav>
       )}
       {user && <TrialBanner />}
       <main>{children}</main>
     </div>
   );
+}
+
+function P({ element }) {
+  return <ProtectedRoute>{element}</ProtectedRoute>;
 }
 
 export default function App() {
@@ -48,86 +56,19 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/add-line"
-          element={
-            <ProtectedRoute>
-              <AddLine />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/edit-line/:lineId"
-          element={
-            <ProtectedRoute>
-              <EditLine />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/line/:lineId"
-          element={
-            <ProtectedRoute>
-              <LineDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/line/:lineId/withdraw"
-          element={
-            <ProtectedRoute>
-              <Withdraw />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/line/:lineId/deposit"
-          element={
-            <ProtectedRoute>
-              <Deposit />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/line/:lineId/history"
-          element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/summary"
-          element={
-            <ProtectedRoute>
-              <Summary />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/limits"
-          element={
-            <ProtectedRoute>
-              <MonthlyLimits />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<P element={<Dashboard />} />} />
+        <Route path="/add-line" element={<P element={<AddLine />} />} />
+        <Route path="/edit-line/:lineId" element={<P element={<EditLine />} />} />
+        <Route path="/line/:lineId" element={<P element={<LineDetail />} />} />
+        <Route path="/line/:lineId/withdraw" element={<P element={<Withdraw />} />} />
+        <Route path="/line/:lineId/deposit" element={<P element={<Deposit />} />} />
+        <Route path="/line/:lineId/history" element={<P element={<History />} />} />
+        <Route path="/summary" element={<P element={<Summary />} />} />
+        <Route path="/limits" element={<P element={<MonthlyLimits />} />} />
+        <Route path="/history" element={<P element={<AllHistory />} />} />
+        <Route path="/reports" element={<P element={<Reports />} />} />
+        <Route path="/transfer" element={<P element={<Transfer />} />} />
+        <Route path="/admin" element={<P element={<Admin />} />} />
       </Routes>
     </Layout>
   );

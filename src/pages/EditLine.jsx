@@ -8,6 +8,7 @@ export default function EditLine() {
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [monthlyLimit, setMonthlyLimit] = useState("");
+  const [commissionRate, setCommissionRate] = useState("0");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -16,6 +17,7 @@ export default function EditLine() {
       setCode(line.code || "");
       setDisplayName(line.display_name || "");
       setMonthlyLimit(line.monthly_limit);
+      setCommissionRate(String(line.commission_rate ?? 0));
       setLoading(false);
     });
   }, [lineId]);
@@ -24,7 +26,12 @@ export default function EditLine() {
     e.preventDefault();
     setError("");
     try {
-      await editLine(lineId, { code, displayName, monthlyLimit: Number(monthlyLimit) });
+      await editLine(lineId, {
+        code,
+        displayName,
+        monthlyLimit: Number(monthlyLimit),
+        commissionRate: Number(commissionRate),
+      });
       navigate(`/line/${lineId}`);
     } catch (err) {
       setError(err.message);
@@ -60,6 +67,18 @@ export default function EditLine() {
             onChange={(e) => setMonthlyLimit(e.target.value)}
           />
         </label>
+        <label>
+          نسبة العمولة %
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value={commissionRate}
+            onChange={(e) => setCommissionRate(e.target.value)}
+          />
+        </label>
+        <p className="hint">مثال: 0.5 يعني نصف بالمية على كل سحب وإيداع</p>
         <button type="submit">حفظ</button>
         <button type="button" className="btn-danger" onClick={handleDelete}>
           🗑 حذف الخط

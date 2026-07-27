@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>🏦 اتقان كاش</h1>
+        <h1>🏦 آفاق كاش</h1>
         <p className="hint" style={{ marginTop: -10, textAlign: "center" }}>
           تسجيل الدخول
         </p>
