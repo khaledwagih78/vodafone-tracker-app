@@ -79,7 +79,7 @@ export default function Reports() {
     ws["!cols"] = [{ wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "التقرير");
-    XLSX.writeFile(wb, `تقرير-اتقان-كاش-${from}-${to}.xlsx`);
+    XLSX.writeFile(wb, `تقرير-آفاق-كاش-${from}-${to}.xlsx`);
   }
 
   return (

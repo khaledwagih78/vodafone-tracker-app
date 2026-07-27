@@ -48,7 +48,7 @@ export default function AllHistory() {
     ws["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "السجل");
-    XLSX.writeFile(wb, `سجل-اتقان-كاش-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `سجل-آفاق-كاش-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
